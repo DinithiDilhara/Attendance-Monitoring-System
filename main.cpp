@@ -14,6 +14,12 @@ struct Student {
     Student* next;
 };
 
+struct TreeNode {
+    Student* student;
+    TreeNode* left;
+    TreeNode* right;
+};
+
 float calculatePercentage(int attended, int total) {
     if (total <= 0) return 0;
     return (attended * 100.0) / total;
@@ -41,11 +47,47 @@ void displayStudent(Student* s) {
     cout << "\n";
 }
 
-void addStudent(Student*& head, queue<Student*>& alertQueue) {
+TreeNode* insertBST(TreeNode* root, Student* student) {
+    if (root == nullptr) {
+        TreeNode* newNode = new TreeNode;
+        newNode->student = student;
+        newNode->left = nullptr;
+        newNode->right = nullptr;
+        return newNode;
+    }
+
+    if (student->id < root->student->id) {
+        root->left = insertBST(root->left, student);
+    } else if (student->id > root->student->id) {
+        root->right = insertBST(root->right, student);
+    }
+
+    return root;
+}
+
+Student* searchBST(TreeNode* root, int id) {
+    if (root == nullptr) return nullptr;
+
+    if (id == root->student->id) {
+        return root->student;
+    } else if (id < root->student->id) {
+        return searchBST(root->left, id);
+    } else {
+        return searchBST(root->right, id);
+    }
+}
+
+void addStudent(Student*& head, TreeNode*& root, queue<Student*>& alertQueue) {
     Student* newStudent = new Student;
 
     cout << "Enter Student ID: ";
     cin >> newStudent->id;
+
+    if (searchBST(root, newStudent->id) != nullptr) {
+        cout << "Student ID already exists.\n";
+        delete newStudent;
+        return;
+    }
 
     cout << "Enter Name: ";
     cin >> newStudent->name;
@@ -77,6 +119,8 @@ void addStudent(Student*& head, queue<Student*>& alertQueue) {
         temp->next = newStudent;
     }
 
+    root = insertBST(root, newStudent);
+
     if (newStudent->percentage < 65) {
         alertQueue.push(newStudent);
     }
@@ -97,24 +141,17 @@ void displayAllStudents(Student* head) {
     }
 }
 
-void searchStudent(Student* head) {
+void searchStudent(TreeNode* root) {
     int searchId;
-    bool found = false;
 
     cout << "Enter Student ID to search: ";
     cin >> searchId;
 
-    Student* temp = head;
-    while (temp != nullptr) {
-        if (temp->id == searchId) {
-            displayStudent(temp);
-            found = true;
-            break;
-        }
-        temp = temp->next;
-    }
+    Student* result = searchBST(root, searchId);
 
-    if (!found) {
+    if (result != nullptr) {
+        displayStudent(result);
+    } else {
         cout << "Student not found.\n";
     }
 }
@@ -149,8 +186,8 @@ void displayDefaulterList(Student* head) {
         temp = temp->next;
     }
 
-    for (int i = 0; i < count - 1; i++) {
-        for (int j = 0; j < count - i - 1; j++) {
+    for (int i = 0; i < index - 1; i++) {
+        for (int j = 0; j < index - i - 1; j++) {
             if (tempStudents[j]->percentage > tempStudents[j + 1]->percentage) {
                 Student* swapTemp = tempStudents[j];
                 tempStudents[j] = tempStudents[j + 1];
@@ -161,7 +198,7 @@ void displayDefaulterList(Student* head) {
 
     cout << "\n===== Defaulter List - Lowest Attendance First =====\n\n";
 
-    int limit = count > 5 ? 5 : count;
+    int limit = index > 5 ? 5 : index;
 
     for (int i = 0; i < limit; i++) {
         cout << i + 1 << ". ";
@@ -192,7 +229,7 @@ void processAlertQueue(queue<Student*>& alertQueue) {
     }
 }
 
-void deleteMemory(Student*& head) {
+void deleteLinkedList(Student*& head) {
     Student* temp;
 
     while (head != nullptr) {
@@ -202,8 +239,18 @@ void deleteMemory(Student*& head) {
     }
 }
 
+void deleteBST(TreeNode*& root) {
+    if (root == nullptr) return;
+
+    deleteBST(root->left);
+    deleteBST(root->right);
+    delete root;
+    root = nullptr;
+}
+
 int main() {
     Student* head = nullptr;
+    TreeNode* root = nullptr;
     queue<Student*> alertQueue;
     int choice;
 
@@ -225,13 +272,13 @@ int main() {
         }
 
         if (choice == 1) {
-            addStudent(head, alertQueue);
+            addStudent(head, root, alertQueue);
         }
         else if (choice == 2) {
             displayAllStudents(head);
         }
         else if (choice == 3) {
-            searchStudent(head);
+            searchStudent(root);
         }
         else if (choice == 4) {
             displayDefaulterList(head);
@@ -248,7 +295,8 @@ int main() {
 
     } while (choice != 6);
 
-    deleteMemory(head);
+    deleteBST(root);
+    deleteLinkedList(head);
 
     return 0;
 }
