@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Attendance Monitoring System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <h1>Attendance Monitoring System</h1>
+  <div class="form-box">
+    <input type="number" id="id" placeholder="Student ID">
+    <input type="text" id="name" placeholder="Student Name">
+    <input type="text" id="subject" placeholder="Subject">
+    <input type="number" id="total" placeholder="Total Classes">
+    <input type="number" id="attended" placeholder="Attended Classes">
+    <button onclick="addStudent()">Add Student</button>
+  </div>
+  <h2>Student Records</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Subject</th>
+        <th>Attendance %</th>
+        <th>Risk Level</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="studentTable"></tbody>
+  </table>
+  <button onclick="showDefaulters()">Show Defaulter List</button>
+  <button onclick="processAlerts()">Process Alert Queue</button>
+  <h2>Output</h2>
+  <div id="output"></div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
