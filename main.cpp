@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <queue>
 using namespace std;
 
 struct Student {
@@ -40,7 +41,7 @@ void displayStudent(Student* s) {
     cout << "\n";
 }
 
-void addStudent(Student*& head) {
+void addStudent(Student*& head, queue<Student*>& alertQueue) {
     Student* newStudent = new Student;
 
     cout << "Enter Student ID: ";
@@ -74,6 +75,10 @@ void addStudent(Student*& head) {
             temp = temp->next;
         }
         temp->next = newStudent;
+    }
+
+    if (newStudent->percentage < 65) {
+        alertQueue.push(newStudent);
     }
 
     cout << "Student added successfully.\n";
@@ -167,6 +172,26 @@ void displayDefaulterList(Student* head) {
     }
 }
 
+void processAlertQueue(queue<Student*>& alertQueue) {
+    if (alertQueue.empty()) {
+        cout << "No high-risk student alerts found.\n";
+        return;
+    }
+
+    cout << "\n===== High Risk Student Alert Queue =====\n";
+
+    while (!alertQueue.empty()) {
+        Student* s = alertQueue.front();
+
+        cout << "\nAlert for Student ID: " << s->id;
+        cout << "\nName: " << s->name;
+        cout << "\nAttendance: " << s->percentage << "%";
+        cout << "\nMessage: Student is not eligible for exams.\n";
+
+        alertQueue.pop();
+    }
+}
+
 void deleteMemory(Student*& head) {
     Student* temp;
 
@@ -179,6 +204,7 @@ void deleteMemory(Student*& head) {
 
 int main() {
     Student* head = nullptr;
+    queue<Student*> alertQueue;
     int choice;
 
     do {
@@ -187,7 +213,8 @@ int main() {
         cout << "2. Display All Students\n";
         cout << "3. Search Student by ID\n";
         cout << "4. Display Defaulter List\n";
-        cout << "5. Exit\n";
+        cout << "5. Process Alert Queue\n";
+        cout << "6. Exit\n";
         cout << "Enter your choice: ";
 
         if (!(cin >> choice)) {
@@ -198,7 +225,7 @@ int main() {
         }
 
         if (choice == 1) {
-            addStudent(head);
+            addStudent(head, alertQueue);
         }
         else if (choice == 2) {
             displayAllStudents(head);
@@ -210,13 +237,16 @@ int main() {
             displayDefaulterList(head);
         }
         else if (choice == 5) {
+            processAlertQueue(alertQueue);
+        }
+        else if (choice == 6) {
             cout << "Exiting system.\n";
         }
         else {
             cout << "Invalid choice.\n";
         }
 
-    } while (choice != 5);
+    } while (choice != 6);
 
     deleteMemory(head);
 
