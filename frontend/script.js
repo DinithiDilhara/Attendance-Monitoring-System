@@ -8,20 +8,26 @@ async function addStudent() {
     totalClasses: Number(document.getElementById("total").value),
     attendedClasses: Number(document.getElementById("attended").value)
   };
+
   await fetch(`${API_URL}/add-student`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json"
+    },
     body: JSON.stringify(student)
   });
+
   clearInputs();
-  loadStudents();
+  await loadStudents();
 }
 
 async function loadStudents() {
   const response = await fetch(`${API_URL}/students`);
   const students = await response.json();
+
   const table = document.getElementById("studentTable");
   table.innerHTML = "";
+
   students.forEach(student => {
     table.innerHTML += `
       <tr>
@@ -30,31 +36,41 @@ async function loadStudents() {
         <td>${student.subject}</td>
         <td>${student.percentage.toFixed(2)}%</td>
         <td>${student.riskLevel}</td>
-        <td><button onclick="deleteStudent('${student.id}')">Delete</button></td>
+        <td>
+          <button onclick="deleteStudent('${student.id}')">Delete</button>
+        </td>
       </tr>
     `;
   });
 }
 
 async function deleteStudent(id) {
-  await fetch(`${API_URL}/delete-student/${id}`, { method: "DELETE" });
-  loadStudents();
+  await fetch(`${API_URL}/delete-student/${id}`, {
+    method: "DELETE"
+  });
+
+  await loadStudents();
 }
 
 async function showDefaulters() {
   const response = await fetch(`${API_URL}/defaulters`);
   const students = await response.json();
+
   let output = "<b>Defaulter List - Lowest Attendance First</b><br><br>";
+
   students.forEach((student, index) => {
     output += `${index + 1}. ${student.id} - ${student.name} - ${student.percentage.toFixed(2)}% - ${student.riskLevel}<br>`;
   });
+
   document.getElementById("output").innerHTML = output;
 }
 
 async function processAlerts() {
   const response = await fetch(`${API_URL}/alerts`);
   const alerts = await response.json();
+
   let output = "<b>High Risk Student Alert Queue</b><br><br>";
+
   if (alerts.length === 0) {
     output += "No high-risk student alerts found.";
   } else {
@@ -62,6 +78,7 @@ async function processAlerts() {
       output += `Alert for ${student.name}: Student is not eligible for exams.<br>`;
     });
   }
+
   document.getElementById("output").innerHTML = output;
 }
 
