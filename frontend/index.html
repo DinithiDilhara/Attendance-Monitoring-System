@@ -1,47 +1,288 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Attendance Monitoring System</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Attendance System</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 
-<div class="container">
-    <h1>Attendance Monitoring System</h1>
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    AttendIQ
+  </div>
+  <nav>
+    <button class="nav-btn active" data-tab="dashboard">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-btn" data-tab="modules">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <span>Modules</span>
+    </button>
+    <button class="nav-btn" data-tab="students">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Students</span>
+    </button>
+    <button class="nav-btn" data-tab="attendance">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Attendance</span>
+    </button>
+    <button class="nav-btn" data-tab="risk">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Risk Report</span>
+    </button>
+    <button class="nav-btn" data-tab="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>Search</span>
+    </button>
+  </nav>
+</header>
 
-    <div class="form-box">
-        <input type="number" id="id" placeholder="Student ID">
-        <input type="text" id="name" placeholder="Student Name">
-        <input type="text" id="subject" placeholder="Subject">
-        <input type="number" id="total" placeholder="Total Classes">
-        <input type="number" id="attended" placeholder="Attended Classes">
+<main>
 
-        <button onclick="addStudent()">Add Student</button>
+  <!-- ── DASHBOARD ── -->
+  <div class="tab-panel active" id="tab-dashboard">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">Overview of attendance and academic risk across all students</div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Total Students</div>
+        <div class="value" id="stat-total">—</div>
+      </div>
+      <div class="stat-card safe">
+        <div class="label">Safe ≥ 80%</div>
+        <div class="value" id="stat-safe">—</div>
+      </div>
+      <div class="stat-card warn">
+        <div class="label">Warning 65–79%</div>
+        <div class="value" id="stat-warn">—</div>
+      </div>
+      <div class="stat-card risk">
+        <div class="label">High Risk &lt; 65%</div>
+        <div class="value" id="stat-risk">—</div>
+      </div>
     </div>
 
-    <h2>Student Records</h2>
-
-    <table>
-        <thead>
+    <div class="card">
+      <div class="card-title">
+        Top 5 Defaulters
+        <span class="badge-mini">Bubble Sort — lowest % first</span>
+        <span class="dsa-tag">DSA</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Subject</th>
-                <th>Attendance %</th>
-                <th>Risk Level</th>
-                <th>Action</th>
+              <th>#</th>
+              <th>Student ID</th>
+              <th>Name</th>
+              <th>Module</th>
+              <th>Avg Attendance</th>
+              <th>Risk</th>
+              <th>Exam Eligible</th>
             </tr>
-        </thead>
-        <tbody id="studentTable"></tbody>
-    </table>
+          </thead>
+          <tbody id="defaulter-table"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
 
-    <button onclick="showDefaulters()">Show Defaulter List</button>
-    <button onclick="processAlerts()">Process Alert Queue</button>
+    <div class="card">
+      <div class="card-title">
+        Alert Queue — High Risk Students
+        <span class="dsa-tag">Queue (FIFO)</span>
+      </div>
+      <div class="alert-queue" id="alert-queue"><div class="empty">No high-risk alerts.</div></div>
+    </div>
+  </div>
 
-    <h2>Output</h2>
-    <div id="output"></div>
-</div>
+  <!-- ── MODULES ── -->
+  <div class="tab-panel" id="tab-modules">
+    <div class="page-title">Modules</div>
+    <div class="page-sub">Add and manage course modules</div>
 
+    <div class="card">
+      <div class="card-title">Add New Module</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Module Name</label>
+          <input type="text" id="mod-name" placeholder="e.g. Data Structures"/>
+        </div>
+        <div class="form-group" style="max-width:180px">
+          <label>Module Code</label>
+          <input type="text" id="mod-code" placeholder="e.g. CS3404" maxlength="10"/>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;max-width:120px">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="addModule()">Add Module</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">All Modules</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Code</th><th>Name</th><th>Action</th></tr>
+          </thead>
+          <tbody id="module-table"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STUDENTS ── -->
+  <div class="tab-panel" id="tab-students">
+    <div class="page-title">Students</div>
+    <div class="page-sub">Stored in a Linked List — insert, traverse, delete
+      <span class="dsa-tag">Linked List</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Add New Student</div>
+      <div class="form-row">
+        <div class="form-group" style="max-width:180px">
+          <label>Student ID</label>
+          <input type="text" id="stu-id" placeholder="e.g. S2024001" maxlength="15"/>
+        </div>
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="stu-name" placeholder="e.g. Dulitha Perera"/>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;max-width:130px">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="addStudent()">Add Student</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">All Students
+        <span class="badge-mini" id="student-count">0 nodes</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Student ID</th><th>Name</th><th>Modules</th><th>Action</th></tr>
+          </thead>
+          <tbody id="student-table"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ATTENDANCE ── -->
+  <div class="tab-panel" id="tab-attendance">
+    <div class="page-title">Record Attendance</div>
+    <div class="page-sub">Enter total and attended classes per student per module</div>
+
+    <div class="card">
+      <div class="card-title">Record / Update Attendance</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Student</label>
+          <select id="att-student"><option value="">Select student…</option></select>
+        </div>
+        <div class="form-group">
+          <label>Module</label>
+          <select id="att-module"><option value="">Select module…</option></select>
+        </div>
+        <div class="form-group" style="max-width:140px">
+          <label>Total Classes</label>
+          <input type="number" id="att-total" min="0" placeholder="e.g. 40"/>
+        </div>
+        <div class="form-group" style="max-width:140px">
+          <label>Attended</label>
+          <input type="number" id="att-attended" min="0" placeholder="e.g. 32"/>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;max-width:100px">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="recordAttendance()">Save</button>
+        </div>
+      </div>
+
+      <div id="att-preview" style="margin-top:16px;display:none;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Preview</div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <span id="att-pct-num" style="font-family:var(--mono);font-size:28px;font-weight:500"></span>
+          <div>
+            <div id="att-badge"></div>
+            <div id="att-alert" style="font-size:12px;color:var(--risk);margin-top:4px;display:none;">⚠ Student is not eligible for exams.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">All Attendance Records</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Student ID</th><th>Module</th><th>Total</th><th>Attended</th><th>%</th><th>Risk</th></tr>
+          </thead>
+          <tbody id="att-table"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RISK REPORT ── -->
+  <div class="tab-panel" id="tab-risk">
+    <div class="page-title">Risk Report</div>
+    <div class="page-sub">All students sorted by attendance — Bubble Sort (lowest first)
+      <span class="dsa-tag">Bubble Sort + Queue</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Defaulter List — Full Ranking</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Rank</th><th>Student ID</th><th>Name</th><th>Module</th><th>%</th><th>Risk Level</th><th>Eligible</th></tr>
+          </thead>
+          <tbody id="risk-table"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SEARCH ── -->
+  <div class="tab-panel" id="tab-search">
+    <div class="page-title">Search Student</div>
+    <div class="page-sub">BST lookup — O(log n) search by Student ID
+      <span class="dsa-tag">BST</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Search by Student ID</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Student ID</label>
+          <input type="text" id="search-id" placeholder="e.g. S2024001" onkeydown="if(event.key==='Enter')searchStudent()"/>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;max-width:120px">
+          <label>&nbsp;</label>
+          <button class="btn btn-primary" onclick="searchStudent()">Search</button>
+        </div>
+      </div>
+
+      <div class="search-result" id="search-result">
+        <div class="sr-name" id="sr-name"></div>
+        <div class="sr-id"   id="sr-id"></div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:6px;">Attendance by Module</div>
+        <div class="module-chips" id="sr-modules"></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast"></div>
 <script src="script.js"></script>
 </body>
 </html>

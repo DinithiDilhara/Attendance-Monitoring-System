@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/DinithiDilhara/Attendance-Monitoring-System#readme",
   "dependencies": {
+    "better-sqlite3": "^12.9.0",
     "cors": "^2.8.6",
     "express": "^5.2.1"
   }
