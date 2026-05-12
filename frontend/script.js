@@ -1,4 +1,4 @@
-const API = "http://localhost:3000/api";
+const API = `http://${window.location.hostname}:3000/api`;
 
 // ─────────────────────────────────────────────
 // TOAST
