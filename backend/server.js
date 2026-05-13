@@ -1,5 +1,4 @@
 const express = require("express");
-const Database = require("better-sqlite3");
 const cors = require("cors");
 const path = require("path");
 
@@ -10,30 +9,14 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-const db = new Database(path.join(__dirname, "attendance.db"));
+// In-memory data storage
+let moduleIdCounter = 1;
+let studentIdCounter = 1;
+let attendanceIdCounter = 1;
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS modules (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    code TEXT NOT NULL UNIQUE
-  );
-
-  CREATE TABLE IF NOT EXISTS students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS attendance (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    student_id TEXT NOT NULL,
-    module_code TEXT NOT NULL,
-    total_classes INTEGER NOT NULL DEFAULT 0,
-    attended_classes INTEGER NOT NULL DEFAULT 0,
-    UNIQUE(student_id, module_code)
-  );
-`);
+const modulesStore = [];
+const studentsStore = [];
+const attendanceStore = [];
 
 class StudentNode {
   constructor(data) {
@@ -165,25 +148,36 @@ function classifyRisk(percentage) {
 }
 
 function buildStructures() {
-  const students = db.prepare("SELECT * FROM students").all();
-  const attendanceRows = db.prepare("SELECT * FROM attendance").all();
+  const students = studentsStore;
+  const attendanceRows = attendanceStore;
+  const modules = modulesStore;
 
   const ll = new LinkedList();
   const bst = new BST();
   const attendanceMap = {};
+  const moduleMap = {};
+
+  // Create module map for quick lookup
+  for (const module of modules) {
+    moduleMap[module.code] = module;
+  }
 
   for (const row of attendanceRows) {
     if (!attendanceMap[row.student_id]) attendanceMap[row.student_id] = [];
 
+    const module = moduleMap[row.module_code];
+    const totalHours = module ? module.total_lecture_hours : 0;
+    const attendedHours = row.attended_lecture_hours;
+
     const pct =
-      row.total_classes > 0
-        ? Math.round((row.attended_classes / row.total_classes) * 100)
+      totalHours > 0
+        ? Math.round((attendedHours / totalHours) * 100)
         : 0;
 
     attendanceMap[row.student_id].push({
       module_code: row.module_code,
-      total_classes: row.total_classes,
-      attended_classes: row.attended_classes,
+      total_lecture_hours: totalHours,
+      attended_lecture_hours: attendedHours,
       percentage: pct,
       risk: classifyRisk(pct),
       eligible: pct >= 65,
@@ -204,34 +198,56 @@ function buildStructures() {
 }
 
 app.get("/api/modules", (req, res) => {
-  const modules = db.prepare("SELECT * FROM modules ORDER BY name").all();
+  const modules = modulesStore.sort((a, b) => a.name.localeCompare(b.name));
   res.json(modules);
 });
 
 app.post("/api/modules", (req, res) => {
-  const { name, code } = req.body;
+  const { name, code, total_lecture_hours } = req.body;
 
-  if (!name || !code) {
-    return res.status(400).json({ error: "Name and code required" });
+  if (!name || !code || total_lecture_hours == null) {
+    return res.status(400).json({ error: "Name, code, and total lecture hours required" });
   }
 
-  try {
-    const stmt = db.prepare("INSERT INTO modules (name, code) VALUES (?, ?)");
-    const result = stmt.run(name.trim(), code.trim().toUpperCase());
-
-    res.json({
-      id: result.lastInsertRowid,
-      name: name.trim(),
-      code: code.trim().toUpperCase(),
-    });
-  } catch (e) {
-    res.status(409).json({ error: "Module code already exists" });
+  const codeUpper = code.trim().toUpperCase();
+  
+  // Check if module code already exists
+  if (modulesStore.some(m => m.code === codeUpper)) {
+    return res.status(409).json({ error: "Module code already exists" });
   }
+
+  const newModule = {
+    id: moduleIdCounter++,
+    name: name.trim(),
+    code: codeUpper,
+    total_lecture_hours: total_lecture_hours,
+  };
+
+  modulesStore.push(newModule);
+
+  res.json(newModule);
 });
 
 app.delete("/api/modules/:code", (req, res) => {
-  db.prepare("DELETE FROM attendance WHERE module_code = ?").run(req.params.code);
-  db.prepare("DELETE FROM modules WHERE code = ?").run(req.params.code);
+  const code = req.params.code.toUpperCase();
+  
+  // Remove module
+  const moduleIndex = modulesStore.findIndex(m => m.code === code);
+  if (moduleIndex !== -1) {
+    modulesStore.splice(moduleIndex, 1);
+  }
+  
+  // Remove related attendance records
+  const attendanceIndexes = [];
+  for (let i = 0; i < attendanceStore.length; i++) {
+    if (attendanceStore[i].module_code === code) {
+      attendanceIndexes.push(i);
+    }
+  }
+  for (let i = attendanceIndexes.length - 1; i >= 0; i--) {
+    attendanceStore.splice(attendanceIndexes[i], 1);
+  }
+  
   res.json({ success: true });
 });
 
@@ -247,51 +263,86 @@ app.post("/api/students", (req, res) => {
     return res.status(400).json({ error: "student_id and name required" });
   }
 
-  try {
-    const stmt = db.prepare("INSERT INTO students (student_id, name) VALUES (?, ?)");
-    const result = stmt.run(student_id.trim().toUpperCase(), name.trim());
-
-    res.json({
-      id: result.lastInsertRowid,
-      student_id: student_id.trim().toUpperCase(),
-      name: name.trim(),
-    });
-  } catch (e) {
-    res.status(409).json({ error: "Student ID already exists" });
+  const idUpper = student_id.trim().toUpperCase();
+  
+  // Check if student ID already exists
+  if (studentsStore.some(s => s.student_id === idUpper)) {
+    return res.status(409).json({ error: "Student ID already exists" });
   }
+
+  const newStudent = {
+    id: studentIdCounter++,
+    student_id: idUpper,
+    name: name.trim(),
+  };
+
+  studentsStore.push(newStudent);
+
+  res.json(newStudent);
 });
 
 app.delete("/api/students/:student_id", (req, res) => {
-  db.prepare("DELETE FROM attendance WHERE student_id = ?").run(req.params.student_id);
-  db.prepare("DELETE FROM students WHERE student_id = ?").run(req.params.student_id);
+  const studentId = req.params.student_id.toUpperCase();
+  
+  // Remove student
+  const studentIndex = studentsStore.findIndex(s => s.student_id === studentId);
+  if (studentIndex !== -1) {
+    studentsStore.splice(studentIndex, 1);
+  }
+  
+  // Remove related attendance records
+  const attendanceIndexes = [];
+  for (let i = 0; i < attendanceStore.length; i++) {
+    if (attendanceStore[i].student_id === studentId) {
+      attendanceIndexes.push(i);
+    }
+  }
+  for (let i = attendanceIndexes.length - 1; i >= 0; i--) {
+    attendanceStore.splice(attendanceIndexes[i], 1);
+  }
+  
   res.json({ success: true });
 });
 
 app.post("/api/attendance", (req, res) => {
-  const { student_id, module_code, total_classes, attended_classes } = req.body;
+  const { student_id, module_code, attended_lecture_hours } = req.body;
 
-  if (!student_id || !module_code || total_classes == null || attended_classes == null) {
-    return res.status(400).json({ error: "All fields required" });
+  if (!student_id || !module_code || attended_lecture_hours == null) {
+    return res.status(400).json({ error: "Student ID, module code, and attended hours required" });
   }
 
-  if (attended_classes > total_classes) {
-    return res.status(400).json({ error: "Attended cannot exceed total classes" });
+  const studentIdUpper = student_id.toUpperCase();
+  const moduleCodeUpper = module_code.toUpperCase();
+
+  // Get module to validate attended hours
+  const module = modulesStore.find(m => m.code === moduleCodeUpper);
+  
+  if (!module) {
+    return res.status(404).json({ error: "Module not found" });
   }
 
-  const stmt = db.prepare(`
-    INSERT INTO attendance (student_id, module_code, total_classes, attended_classes)
-    VALUES (?, ?, ?, ?)
-    ON CONFLICT(student_id, module_code) DO UPDATE SET
-      total_classes = excluded.total_classes,
-      attended_classes = excluded.attended_classes
-  `);
+  if (attended_lecture_hours > module.total_lecture_hours) {
+    return res.status(400).json({ error: "Attended hours cannot exceed total lecture hours" });
+  }
 
-  stmt.run(
-    student_id.toUpperCase(),
-    module_code.toUpperCase(),
-    total_classes,
-    attended_classes
+  // Check if attendance record already exists
+  const existingIndex = attendanceStore.findIndex(
+    a => a.student_id === studentIdUpper && a.module_code === moduleCodeUpper
   );
+
+  if (existingIndex !== -1) {
+    // Update existing record
+    attendanceStore[existingIndex].attended_lecture_hours = attended_lecture_hours;
+  } else {
+    // Create new record
+    const newAttendance = {
+      id: attendanceIdCounter++,
+      student_id: studentIdUpper,
+      module_code: moduleCodeUpper,
+      attended_lecture_hours: attended_lecture_hours,
+    };
+    attendanceStore.push(newAttendance);
+  }
 
   res.json({ success: true });
 });
@@ -321,8 +372,8 @@ app.get("/api/risk", (req, res) => {
         percentage: a.percentage,
         risk: a.risk,
         eligible: a.eligible,
-        total_classes: a.total_classes,
-        attended_classes: a.attended_classes,
+        total_lecture_hours: a.total_lecture_hours,
+        attended_lecture_hours: a.attended_lecture_hours,
       };
 
       summaries.push(summary);
@@ -351,6 +402,7 @@ app.get("/api/risk", (req, res) => {
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🎓 Laptop: http://localhost:${PORT}`);
   console.log(`📱 Tablet: http://192.168.23.172:${PORT}`);
-  console.log(`📦 Database: attendance.db`);
+  console.log(`� Storage: In-Memory (Temporary)`);
+  console.log(`⚠️  Data will be cleared when project closes\n`);
   console.log(`📡 API base: http://192.168.23.172:${PORT}/api\n`);
 });

@@ -116,6 +116,10 @@
           <label>Module Code</label>
           <input type="text" id="mod-code" placeholder="e.g. CS3404" maxlength="10"/>
         </div>
+        <div class="form-group" style="max-width:180px">
+          <label>Total Lecture Hours</label>
+          <input type="number" id="mod-hours" min="0" placeholder="e.g. 40"/>
+        </div>
         <div class="form-group" style="justify-content:flex-end;max-width:120px">
           <label>&nbsp;</label>
           <button class="btn btn-primary" onclick="addModule()">Add Module</button>
@@ -128,9 +132,9 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Code</th><th>Name</th><th>Action</th></tr>
+            <tr><th>Code</th><th>Name</th><th>Total Hours</th><th>Action</th></tr>
           </thead>
-          <tbody id="module-table"><tr><td colspan="3" class="empty">Loading…</td></tr></tbody>
+          <tbody id="module-table"><tr><td colspan="4" class="empty">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -179,7 +183,7 @@
   <!-- ── ATTENDANCE ── -->
   <div class="tab-panel" id="tab-attendance">
     <div class="page-title">Record Attendance</div>
-    <div class="page-sub">Enter total and attended classes per student per module</div>
+    <div class="page-sub">Enter attended lecture hours per student per module</div>
 
     <div class="card">
       <div class="card-title">Record / Update Attendance</div>
@@ -193,11 +197,11 @@
           <select id="att-module"><option value="">Select module…</option></select>
         </div>
         <div class="form-group" style="max-width:140px">
-          <label>Total Classes</label>
-          <input type="number" id="att-total" min="0" placeholder="e.g. 40"/>
+          <label>Total Lecture Hours</label>
+          <input type="number" id="att-total" min="0" disabled placeholder="Auto-filled"/>
         </div>
         <div class="form-group" style="max-width:140px">
-          <label>Attended</label>
+          <label>Attended Hours</label>
           <input type="number" id="att-attended" min="0" placeholder="e.g. 32"/>
         </div>
         <div class="form-group" style="justify-content:flex-end;max-width:100px">
@@ -223,7 +227,7 @@
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Student ID</th><th>Module</th><th>Total</th><th>Attended</th><th>%</th><th>Risk</th></tr>
+            <tr><th>Student ID</th><th>Module</th><th>Total Hours</th><th>Attended Hours</th><th>%</th><th>Risk</th></tr>
           </thead>
           <tbody id="att-table"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
         </table>

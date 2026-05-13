@@ -102,13 +102,14 @@ async function loadModules() {
   const modules = await res.json();
   const tb      = document.getElementById("module-table");
   if (!modules.length) {
-    tb.innerHTML = `<tr><td colspan="3" class="empty">No modules yet. Add one above.</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="4" class="empty">No modules yet. Add one above.</td></tr>`;
     return;
   }
   tb.innerHTML = modules.map(m => `
     <tr>
       <td><span class="id-tag">${m.code}</span></td>
       <td>${m.name}</td>
+      <td>${m.total_lecture_hours}</td>
       <td><button class="btn btn-danger" onclick="deleteModule('${m.code}')">Delete</button></td>
     </tr>`).join("");
 }
@@ -116,15 +117,17 @@ async function loadModules() {
 async function addModule() {
   const name = document.getElementById("mod-name").value.trim();
   const code = document.getElementById("mod-code").value.trim();
-  if (!name || !code) return toast("Fill in module name and code", "error");
+  const total_lecture_hours = parseInt(document.getElementById("mod-hours").value);
+  if (!name || !code || isNaN(total_lecture_hours)) return toast("Fill in all module fields", "error");
   const res  = await fetch(`${API}/modules`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, code })
+    body: JSON.stringify({ name, code, total_lecture_hours })
   });
   const data = await res.json();
   if (!res.ok) return toast(data.error, "error");
   document.getElementById("mod-name").value = "";
   document.getElementById("mod-code").value = "";
+  document.getElementById("mod-hours").value = "";
   toast(`Module ${data.code} added`);
   loadModules();
 }
@@ -199,7 +202,15 @@ async function loadAttendanceSelects() {
   ss.innerHTML = `<option value="">Select student…</option>` +
     students.map(s => `<option value="${s.student_id}">${s.name} (${s.student_id})</option>`).join("");
   sm.innerHTML = `<option value="">Select module…</option>` +
-    modules.map(m => `<option value="${m.code}">${m.name} (${m.code})</option>`).join("");
+    modules.map(m => `<option value="${m.code}" data-hours="${m.total_lecture_hours}">${m.name} (${m.code}) - ${m.total_lecture_hours}h</option>`).join("");
+  
+  // Add event listener to populate total hours when module is selected
+  sm.addEventListener("change", () => {
+    const selected = sm.options[sm.selectedIndex];
+    const hours = selected.getAttribute("data-hours");
+    document.getElementById("att-total").value = hours || "";
+    updatePreview();
+  });
 }
 
 async function loadAttendanceTable() {
@@ -216,8 +227,8 @@ async function loadAttendanceTable() {
     <tr>
       <td><span class="id-tag">${r.student_id}</span></td>
       <td><span class="id-tag">${r.module_code}</span></td>
-      <td>${r.total_classes}</td>
-      <td>${r.attended_classes}</td>
+      <td>${r.total_lecture_hours}</td>
+      <td>${r.attended_lecture_hours}</td>
       <td>${pctBarHTML(r.percentage)}</td>
       <td>${badgeHTML(r.risk)}</td>
     </tr>`).join("");
@@ -245,20 +256,21 @@ function updatePreview() {
 async function recordAttendance() {
   const student_id      = document.getElementById("att-student").value;
   const module_code     = document.getElementById("att-module").value;
-  const total_classes   = parseInt(document.getElementById("att-total").value);
-  const attended_classes = parseInt(document.getElementById("att-attended").value);
-  if (!student_id || !module_code || isNaN(total_classes) || isNaN(attended_classes))
+  const attended_lecture_hours = parseInt(document.getElementById("att-attended").value);
+  if (!student_id || !module_code || isNaN(attended_lecture_hours))
     return toast("Fill in all fields", "error");
-  if (attended_classes > total_classes)
-    return toast("Attended cannot exceed total classes", "error");
 
   const res  = await fetch(`${API}/attendance`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ student_id, module_code, total_classes, attended_classes })
+    body: JSON.stringify({ student_id, module_code, attended_lecture_hours })
   });
   const data = await res.json();
   if (!res.ok) return toast(data.error, "error");
   toast("Attendance saved");
+  document.getElementById("att-attended").value = "";
+  document.getElementById("att-total").value = "";
+  document.getElementById("att-module").value = "";
+  document.getElementById("att-student").value = "";
   loadAttendanceTable();
 }
 
